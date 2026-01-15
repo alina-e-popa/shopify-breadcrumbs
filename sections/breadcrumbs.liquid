@@ -1,0 +1,193 @@
+{% unless template == 'index' or template == 'cart' or template == 'list-collections' %}
+  {% liquid
+    assign justify = section.settings.text_alignment | default: 'start'
+  %}
+  <div
+    id="{{ section.id }}"
+    class="section--breadcrumb"
+    data-section-type="breadcrumb"
+    data-section-id="{{ section.id }}"
+  >
+    {% capture separator_icon %}
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false" class="rtl-flip-x">
+      <path d="M4.5 2.25L8.25 6L4.5 9.75" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    {% endcapture %}
+    <div class="page-width">
+      <nav
+        class="breadcrumbs justify-center md:justify-{{ justify }}"
+        role="navigation"
+        aria-label="breadcrumbs"
+      >
+        <a href="{{ routes.root_url }}" title="Home">{{ 'general.breadcrumbs.home' | t }}</a>
+        {% if template contains 'page' %}
+          <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+          <span>{{ page.title }}</span>
+        {% elsif template contains 'product' %}
+          {% comment %}
+            ========================================
+            ENHANCED PRODUCT BREADCRUMBS
+            Supports hierarchical collections via metafields:
+            - product.metafields.breadcrumb.primary_collection (leaf collection)
+            - collection.metafields.breadcrumbs.collections (parent collections list)
+            ========================================
+          {% endcomment %}
+          {% liquid
+            # Get leaf collection from product metafield
+            assign primary_collection = product.metafields.breadcrumb.primary_collection.value
+            
+            # Build breadcrumb hierarchy array
+            assign breadcrumb_collections = '' | split: ''
+            
+            if primary_collection
+              # Get parent collections from leaf collection's metafield
+              assign parent_collections = primary_collection.metafields.breadcrumbs.collections.value
+              
+              # Add parents first (if they exist)
+              if parent_collections and parent_collections.size > 0
+                for parent in parent_collections
+                  assign breadcrumb_collections = breadcrumb_collections | push: parent
+                endfor
+              endif
+              
+              # Add leaf collection
+              assign breadcrumb_collections = breadcrumb_collections | push: primary_collection
+            elsif collection.url != blank
+              # Fallback: use current collection context
+              assign breadcrumb_collections = breadcrumb_collections | push: collection
+            elsif product.collections.size > 0
+              # Fallback: use first product collection
+              assign breadcrumb_collections = breadcrumb_collections | push: product.collections.first
+            endif
+          %}
+          
+          {% comment %} Render collection hierarchy {% endcomment %}
+          {% if breadcrumb_collections.size > 0 %}
+            {% for breadcrumb_collection in breadcrumb_collections %}
+              <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+              <a href="{{ breadcrumb_collection.url }}">{{ breadcrumb_collection.title }}</a>
+            {% endfor %}
+          {% else %}
+            {% comment %} Fallback: show "All Products" if no collections {% endcomment %}
+            <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+            <a href="{{ routes.all_products_collection_url }}">{{ 'general.breadcrumbs.collections' | t }}</a>
+          {% endif %}
+          
+          <span aria-hidden="true" class="breadcrumbs--sep breadcrumbs--sep-last">{{ separator_icon }}</span>
+          <span class="breadcrumbs--last">{{ product.title }}</span>
+          
+          {% comment %} JSON-LD BreadcrumbList Schema {% endcomment %}
+          <script type="application/ld+json">
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            "itemListElement": [
+              {
+                "@type": "ListItem",
+                "position": 1,
+                "name": {{ 'general.breadcrumbs.home' | t | json }},
+                "item": {{ shop.url | append: routes.root_url | json }}
+              }
+              {% if breadcrumb_collections.size > 0 %}
+                {% for breadcrumb_collection in breadcrumb_collections %}
+                  ,{
+                    "@type": "ListItem",
+                    "position": {{ forloop.index | plus: 1 }},
+                    "name": {{ breadcrumb_collection.title | json }},
+                    "item": {{ shop.url | append: breadcrumb_collection.url | json }}
+                  }
+                {% endfor %}
+              {% else %}
+                ,{
+                  "@type": "ListItem",
+                  "position": 2,
+                  "name": {{ 'general.breadcrumbs.collections' | t | json }},
+                  "item": {{ shop.url | append: routes.all_products_collection_url | json }}
+                }
+              {% endif %}
+              ,{
+                "@type": "ListItem",
+                "position": {{ breadcrumb_collections.size | plus: 2 }},
+                "name": {{ product.title | json }},
+                "item": {{ shop.url | append: product.url | json }}
+              }
+            ]
+          }
+          </script>
+        {% elsif template contains 'collection' and collection.handle %}
+          {% if collection.handle != 'all' %}
+            <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+            <a href="{{ routes.all_products_collection_url }}">{{ 'general.breadcrumbs.collections' | t }}</a>
+          {% endif %}
+          <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+          {% if current_tags %}
+            {% capture url %}{{ routes.collections_url }}/{{ collection.handle }}{% endcapture %}
+            {{ collection.title | link_to: url }}
+            <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+            <span class="breadcrumbs--last">{{ current_tags | join: ' + ' }}</span>
+          {% else %}
+            <span class="breadcrumbs--last">{{ collection.title }}</span>
+          {% endif %}
+        {% elsif template == 'blog' %}
+          <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+          {% if current_tags %}
+            {{ blog.title | link_to: blog.url }}
+            <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+            <span class="breadcrumbs--last">{{ current_tags | join: ' + ' }}</span>
+          {% else %}
+            <span>{{ blog.title }}</span>
+          {% endif %}
+        {% elsif template == 'article' %}
+          <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+          {{ blog.title | link_to: blog.url }}
+          <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+          <span class="breadcrumbs--last">{{ article.title }}</span>
+        {% else %}
+          <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
+          <span class="breadcrumbs--last">{{ page_title }}</span>
+        {% endif %}
+      </nav>
+    </div>
+  </div>
+{% endunless %}
+{% schema %}
+{
+  "name": "t:sections.breadcrumbs.name",
+  "disabled_on": {
+    "groups": ["header", "footer", "custom.overlay"],
+    "templates": ["index", "cart", "list-collections"]
+  },
+  "limit": 1,
+  "settings": [
+    {
+      "type": "paragraph",
+      "content": "[Read How-to](https://foxecom.link/HE4PzP6)"
+    },
+    {
+      "type": "select",
+      "id": "text_alignment",
+      "label": "t:settings_schema.global.settings.text_alignment.label",
+      "options": [
+        {
+          "value": "start",
+          "label": "t:settings_schema.global.settings.text_alignment.options__1.label"
+        },
+        {
+          "value": "center",
+          "label": "t:settings_schema.global.settings.text_alignment.options__2.label"
+        },
+        {
+          "value": "end",
+          "label": "t:settings_schema.global.settings.text_alignment.options__3.label"
+        }
+      ],
+      "default": "center"
+    }
+  ],
+  "presets": [
+    {
+      "name": "t:sections.breadcrumbs.name"
+    }
+  ]
+}
+{% endschema %}
