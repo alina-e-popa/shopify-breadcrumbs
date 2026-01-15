@@ -16,11 +16,6 @@ Enhanced breadcrumbs for Shopify Sleek theme with multi-level collection hierarc
 - **Type**: Collection (single)
 - **Purpose**: Stores the leaf collection
 
-### 2. Collection Metafield (NEW - create this)
-- **Namespace/Key**: `breadcrumbs.collections`
-- **Type**: List of Collections
-- **Purpose**: Stores parent collections in order
-
 ## Setup Instructions
 
 ### Step 1: Create Collection Metafield
@@ -41,12 +36,6 @@ Example: Product "Red Gel Polish" should show: Home > Nail Products > Gel Polish
 
 1. **On the product** ("Red Gel Polish"):
    - Set `breadcrumb.primary_collection` = "Gel Polish" (leaf collection)
-
-2. **On the leaf collection** ("Gel Polish"):
-   - Set `breadcrumbs.collections` = ["Nail Products"] (parent list)
-
-3. **On parent collection** ("Nail Products"):
-   - Leave `breadcrumbs.collections` empty (it's top-level)
 
 ## Testing
 
