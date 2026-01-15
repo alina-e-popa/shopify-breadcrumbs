@@ -1,0 +1,57 @@
+/* Mobile breadcrumbs - FULL ALIGNMENT FIX */
+@media screen and (max-width: 749px) {
+  
+  /* 1. Reset container to force start from left */
+  .section--breadcrumb .page-width .breadcrumbs,
+  .breadcrumbs[role="navigation"] {
+    display: flex !important;
+    justify-content: flex-start !important; /* CRITICAL: Overrides centering */
+    text-align: left !important;            /* CRITICAL: Text alignment left */
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    
+    /* Scroll mechanics */
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    
+    /* Generous left padding to avoid clipping */
+    padding-left: 20px !important; 
+    padding-right: 20px !important;
+    padding-bottom: 10px !important;
+    
+    /* Reset margins that might pull content */
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* 2. Ensure inner elements don't shrink */
+  .section--breadcrumb .breadcrumbs a,
+  .section--breadcrumb .breadcrumbs span,
+  .section--breadcrumb .breadcrumbs--sep,
+  .section--breadcrumb .breadcrumbs--last {
+    display: inline-flex !important;
+    align-items: center !important;
+    flex-shrink: 0 !important; /* Prevents text squishing */
+    white-space: nowrap !important;
+  }
+  
+  /* Spacing between elements */
+  .section--breadcrumb .breadcrumbs--sep {
+     margin: 0 5px !important;
+  }
+
+  /* 3. Subtle ScrollBar Style */
+  .section--breadcrumb .breadcrumbs::-webkit-scrollbar {
+    height: 3px !important;
+  }
+  .section--breadcrumb .breadcrumbs::-webkit-scrollbar-track {
+    background: transparent !important;
+  }
+  .section--breadcrumb .breadcrumbs::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-radius: 4px !important;
+  }
+}
