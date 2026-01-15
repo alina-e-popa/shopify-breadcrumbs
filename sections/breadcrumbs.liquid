@@ -20,55 +20,32 @@
         aria-label="breadcrumbs"
       >
         <a href="{{ routes.root_url }}" title="Home">{{ 'general.breadcrumbs.home' | t }}</a>
+        
         {% if template contains 'page' %}
           <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
           <span>{{ page.title }}</span>
+          
         {% elsif template contains 'product' %}
           {% comment %}
             ========================================
-            ENHANCED PRODUCT BREADCRUMBS
-            Supports hierarchical collections via metafields:
-            - product.metafields.breadcrumb.primary_collection (leaf collection)
-            - collection.metafields.breadcrumbs.collections (parent collections list)
+            PRODUCT BREADCRUMBS
+            Uses product metafield with list of collections in order:
+            - product.metafields.breadcrumb.primary_collection (List of Collections)
             ========================================
           {% endcomment %}
           {% liquid
-            # Get leaf collection from product metafield
-            assign primary_collection = product.metafields.breadcrumb.primary_collection.value
-            
-            # Build breadcrumb hierarchy array
-            assign breadcrumb_collections = '' | split: ''
-            
-            if primary_collection
-              # Get parent collections from leaf collection's metafield
-              assign parent_collections = primary_collection.metafields.breadcrumbs.collections.value
-              
-              # Add parents first (if they exist)
-              if parent_collections and parent_collections.size > 0
-                for parent in parent_collections
-                  assign breadcrumb_collections = breadcrumb_collections | push: parent
-                endfor
-              endif
-              
-              # Add leaf collection
-              assign breadcrumb_collections = breadcrumb_collections | push: primary_collection
-            elsif collection.url != blank
-              # Fallback: use current collection context
-              assign breadcrumb_collections = breadcrumb_collections | push: collection
-            elsif product.collections.size > 0
-              # Fallback: use first product collection
-              assign breadcrumb_collections = breadcrumb_collections | push: product.collections.first
-            endif
+            # Get breadcrumb collections list from product metafield
+            assign breadcrumb_collections = product.metafields.breadcrumb.primary_collection.value
           %}
           
           {% comment %} Render collection hierarchy {% endcomment %}
-          {% if breadcrumb_collections.size > 0 %}
+          {% if breadcrumb_collections and breadcrumb_collections.size > 0 %}
             {% for breadcrumb_collection in breadcrumb_collections %}
               <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
               <a href="{{ breadcrumb_collection.url }}">{{ breadcrumb_collection.title }}</a>
             {% endfor %}
           {% else %}
-            {% comment %} Fallback: show "All Products" if no collections {% endcomment %}
+            {% comment %} Fallback: show "All Products" if no metafield set {% endcomment %}
             <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
             <a href="{{ routes.all_products_collection_url }}">{{ 'general.breadcrumbs.collections' | t }}</a>
           {% endif %}
@@ -88,7 +65,7 @@
                 "name": {{ 'general.breadcrumbs.home' | t | json }},
                 "item": {{ shop.url | append: routes.root_url | json }}
               }
-              {% if breadcrumb_collections.size > 0 %}
+              {% if breadcrumb_collections and breadcrumb_collections.size > 0 %}
                 {% for breadcrumb_collection in breadcrumb_collections %}
                   ,{
                     "@type": "ListItem",
@@ -97,6 +74,12 @@
                     "item": {{ shop.url | append: breadcrumb_collection.url | json }}
                   }
                 {% endfor %}
+                ,{
+                  "@type": "ListItem",
+                  "position": {{ breadcrumb_collections.size | plus: 2 }},
+                  "name": {{ product.title | json }},
+                  "item": {{ shop.url | append: product.url | json }}
+                }
               {% else %}
                 ,{
                   "@type": "ListItem",
@@ -104,16 +87,17 @@
                   "name": {{ 'general.breadcrumbs.collections' | t | json }},
                   "item": {{ shop.url | append: routes.all_products_collection_url | json }}
                 }
+                ,{
+                  "@type": "ListItem",
+                  "position": 3,
+                  "name": {{ product.title | json }},
+                  "item": {{ shop.url | append: product.url | json }}
+                }
               {% endif %}
-              ,{
-                "@type": "ListItem",
-                "position": {{ breadcrumb_collections.size | plus: 2 }},
-                "name": {{ product.title | json }},
-                "item": {{ shop.url | append: product.url | json }}
-              }
             ]
           }
           </script>
+          
         {% elsif template contains 'collection' and collection.handle %}
           {% if collection.handle != 'all' %}
             <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
@@ -128,6 +112,7 @@
           {% else %}
             <span class="breadcrumbs--last">{{ collection.title }}</span>
           {% endif %}
+          
         {% elsif template == 'blog' %}
           <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
           {% if current_tags %}
@@ -137,11 +122,13 @@
           {% else %}
             <span>{{ blog.title }}</span>
           {% endif %}
+          
         {% elsif template == 'article' %}
           <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
           {{ blog.title | link_to: blog.url }}
           <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
           <span class="breadcrumbs--last">{{ article.title }}</span>
+          
         {% else %}
           <span aria-hidden="true" class="breadcrumbs--sep">{{ separator_icon }}</span>
           <span class="breadcrumbs--last">{{ page_title }}</span>
@@ -150,6 +137,7 @@
     </div>
   </div>
 {% endunless %}
+
 {% schema %}
 {
   "name": "t:sections.breadcrumbs.name",
